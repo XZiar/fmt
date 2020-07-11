@@ -210,7 +210,16 @@
 #  define FMT_CLASS_API
 #endif
 #ifndef FMT_API
-#  define FMT_API
+// ++MOD++
+#  if FMT_GCC_VERSION || FMT_CLANG_VERSION
+#    ifdef FMT_EXPORT
+#      define FMT_API __attribute__((visibility("default")))
+#      define FMT_EXTERN_TEMPLATE_API FMT_API
+#      define FMT_INSTANTIATION_DEF_API
+#    else
+#      define FMT_API
+#    endif
+#  endif
 #endif
 #ifndef FMT_EXTERN_TEMPLATE_API
 #  define FMT_EXTERN_TEMPLATE_API
@@ -960,6 +969,8 @@ using long_type = conditional_t<long_short, int, long long>;
 using ulong_type = conditional_t<long_short, unsigned, unsigned long long>;
 
 // Maps formatting arguments to core types.
+// ++UTF++
+#define arg_mapper arg_mapper_
 template <typename Context> struct arg_mapper {
   using char_type = typename Context::char_type;
 
@@ -1077,6 +1088,12 @@ template <typename Context> struct arg_mapper {
     return 0;
   }
 };
+
+// ++UTF++
+#undef arg_mapper
+template<typename Context>
+struct arg_mapper : public arg_mapper_<Context>
+{ };
 
 // A type constant after applying arg_mapper<Context>.
 template <typename T, typename Context>
@@ -1476,9 +1493,19 @@ class dynamic_format_arg_store
     };
   };
 
+  // ++UTF++
+  //template <typename T>
+  //using stored_type = conditional_t<detail::is_string<T>::value,
+  //                                  std::basic_string<char_type>, T>;
+  template <typename T, typename = void> struct stored_type_impl {
+      using type = T;
+  };
+  template <typename T> struct stored_type_impl<T, enable_if_t<detail::is_string<T>::value>> {
+      using result = decltype(detail::to_string_view(std::declval<T>()));
+      using type = std::basic_string<typename result::value_type>;
+  };
   template <typename T>
-  using stored_type = conditional_t<detail::is_string<T>::value,
-                                    std::basic_string<char_type>, T>;
+  using stored_type = typename stored_type_impl<T>::type;
 
   // Storage of basic_format_arg must be contiguous.
   std::vector<basic_format_arg<Context>> data_;

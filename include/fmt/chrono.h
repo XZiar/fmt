@@ -397,6 +397,10 @@ inline size_t strftime(wchar_t* str, size_t count, const wchar_t* format,
                        const std::tm* time) {
   return std::wcsftime(str, count, format, time);
 }
+
+// ++UTF++
+inline size_t strftime(char16_t* str, size_t count, const char16_t* format, const std::tm* time);
+inline size_t strftime(char32_t* str, size_t count, const char32_t* format, const std::tm* time);
 }  // namespace detail
 
 template <typename Char> struct formatter<std::tm, Char> {

@@ -874,7 +874,8 @@ template <> inline wchar_t decimal_point(locale_ref loc) {
 
 // Compares two characters for equality.
 template <typename Char> bool equal2(const Char* lhs, const char* rhs) {
-  return lhs[0] == rhs[0] && lhs[1] == rhs[1];
+// ++UTF++
+  return lhs[0] == static_cast<Char>(rhs[0]) && lhs[1] == static_cast<Char>(rhs[1]);
 }
 inline bool equal2(const char* lhs, const char* rhs) {
   return memcmp(lhs, rhs, 2) == 0;
@@ -1793,6 +1794,19 @@ auto write(OutputIt out, const T& value) -> typename std::enable_if<
   return formatter<T>().format(value, ctx);
 }
 
+
+// ++UTF++
+template<typename Char>
+struct StringProcess
+{
+    template<typename Ret, typename Func>
+    static inline Ret HandleString(const basic_string_view<Char> str, Func&& func)
+    {
+        return func(str);
+    }
+};
+
+
 // An argument visitor that formats the argument and writes it via the output
 // iterator. It's a class and not a generic lambda for compatibility with C++11.
 template <typename OutputIt, typename Char> struct default_arg_formatter {
@@ -1803,7 +1817,17 @@ template <typename OutputIt, typename Char> struct default_arg_formatter {
   locale_ref loc;
 
   template <typename T> OutputIt operator()(T value) {
-    return write<Char>(out, value);
+      // ++UTF++
+      if constexpr (std::is_same_v<std::decay_t<T>, basic_string_view<Char>>)
+      {
+          return StringProcess<Char>::template HandleString<OutputIt>(value,
+              [&](const basic_string_view<Char> str)
+              {
+                  return write<Char>(out, str);
+              });
+      }
+      else
+        return write<Char>(out, value);
   }
 
   OutputIt operator()(typename basic_format_arg<context>::handle handle) {
@@ -2568,7 +2592,9 @@ FMT_CONSTEXPR const Char* parse_format_specs(const Char* begin, const Char* end,
 template <bool IS_CONSTEXPR, typename T, typename Ptr = const T*>
 FMT_CONSTEXPR bool find(Ptr first, Ptr last, T value, Ptr& out) {
   for (out = first; out != last; ++out) {
-    if (*out == value) return true;
+    // ++MOD++
+    //if (*out == value) return true;
+    if (*out == static_cast<decltype(*out)>(value)) return true;
   }
   return false;
 }
@@ -2927,6 +2953,16 @@ class arg_formatter : public arg_formatter_base<OutputIt, Char> {
     if (ptr_) advance_to(*parse_ctx_, ptr_);
     handle.format(*parse_ctx_, ctx_);
     return ctx_.out();
+  }
+
+  // ++UTF++
+  iterator operator()(basic_string_view<char_type> value)
+  {
+      return StringProcess<char_type>::template HandleString<iterator>(value, 
+          [&](const basic_string_view<char_type> str) 
+          {
+              return base::operator()(str);
+          });
   }
 };
 }  // namespace detail
