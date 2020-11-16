@@ -18,7 +18,7 @@
 #include <vector>
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMT_VERSION 70100
+#define FMT_VERSION 70102
 
 #ifdef __clang__
 #  define FMT_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
@@ -1956,7 +1956,14 @@ template <typename Context> class basic_format_args {
   }
 };
 
-/** An alias to ``basic_format_args<context>``. */
+#ifdef FMT_ARM_ABI_COMPATIBILITY
+/** An alias to ``basic_format_args<format_context>``. */
+// Separate types would result in shorter symbols but break ABI compatibility
+// between clang and gcc on ARM (#1919).
+using format_args = basic_format_args<format_context>;
+using wformat_args = basic_format_args<wformat_context>;
+#else
+// DEPRECATED! These are kept for ABI compatibility.
 // It is a separate type rather than an alias to make symbols readable.
 struct format_args : basic_format_args<format_context> {
   template <typename... Args>
@@ -1965,6 +1972,7 @@ struct format_args : basic_format_args<format_context> {
 struct wformat_args : basic_format_args<wformat_context> {
   using basic_format_args::basic_format_args;
 };
+#endif
 
 namespace detail {
 
@@ -1996,10 +2004,9 @@ inline void vprint_mojibake(std::FILE*, string_view, format_args) {}
 // vformat_to<ArgFormatter>(...) overload, so SFINAE on iterator type instead.
 template <typename OutputIt, typename S, typename Char = char_t<S>,
           bool enable = detail::is_output_iterator<OutputIt, Char>::value>
-auto vformat_to(
-    OutputIt out, const S& format_str,
-    basic_format_args<buffer_context<type_identity_t<Char>>> args) ->
-    typename std::enable_if<enable, OutputIt>::type {
+auto vformat_to(OutputIt out, const S& format_str,
+                basic_format_args<buffer_context<type_identity_t<Char>>> args)
+    -> typename std::enable_if<enable, OutputIt>::type {
   decltype(detail::get_buffer<Char>(out)) buf(detail::get_buffer_init(out));
   detail::vformat_to(buf, to_string_view(format_str), args);
   return detail::get_iterator(buf);
@@ -2052,8 +2059,8 @@ inline format_to_n_result<OutputIt> vformat_to_n(
  */
 template <typename OutputIt, typename S, typename... Args,
           bool enable = detail::is_output_iterator<OutputIt, char_t<S>>::value>
-inline auto format_to_n(OutputIt out, size_t n,
-                        const S& format_str, const Args&... args) ->
+inline auto format_to_n(OutputIt out, size_t n, const S& format_str,
+                        const Args&... args) ->
     typename std::enable_if<enable, format_to_n_result<OutputIt>>::type {
   const auto& vargs = fmt::make_args_checked<Args...>(format_str, args...);
   return vformat_to_n(out, n, to_string_view(format_str), vargs);
