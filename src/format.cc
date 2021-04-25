@@ -24,7 +24,6 @@ int format_float(char* buf, std::size_t size, const char* format, int precision,
                        : snprintf_ptr(buf, size, format, precision, value);
 }
 
-// ++MOD++
 template FMT_API dragonbox::decimal_fp<float> dragonbox::to_decimal(float x)
     FMT_NOEXCEPT;
 template FMT_API dragonbox::decimal_fp<double> dragonbox::to_decimal(double x)
