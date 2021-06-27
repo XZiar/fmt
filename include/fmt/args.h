@@ -94,11 +94,23 @@ class dynamic_format_arg_store
     };
   };
 
+  // ++UTF++
+  // template <typename T>
+  // using stored_type = conditional_t<detail::is_string<T>::value &&
+  //                                       !has_formatter<T, Context>::value &&
+  //                                       !detail::is_reference_wrapper<T>::value,
+  //                                   std::basic_string<char_type>, T>;
+  template <typename T, typename = void> struct stored_type_impl {
+      using type = T;
+  };
+  template <typename T> struct stored_type_impl<T, enable_if_t<detail::is_string<T>::value &&
+                                      !has_formatter<T, Context>::value &&
+                                      !detail::is_reference_wrapper<T>::value>> {
+      using result = decltype(detail::to_string_view(std::declval<T>()));
+      using type = std::basic_string<typename result::value_type>;
+  };
   template <typename T>
-  using stored_type = conditional_t<detail::is_string<T>::value &&
-                                        !has_formatter<T, Context>::value &&
-                                        !detail::is_reference_wrapper<T>::value,
-                                    std::basic_string<char_type>, T>;
+  using stored_type = typename stored_type_impl<T>::type;
 
   // Storage of basic_format_arg must be contiguous.
   std::vector<basic_format_arg<Context>> data_;
