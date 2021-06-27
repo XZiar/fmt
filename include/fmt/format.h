@@ -1,4 +1,4 @@
-/*
+﻿/*
  Formatting library for C++
 
  Copyright (c) 2012 - present, Victor Zverovich
@@ -2016,12 +2016,12 @@ template <typename Char> struct arg_formatter {
   }
 
   // ++UTF++
-  iterator operator()(basic_string_view<char_type> value)
+  auto operator()(basic_string_view<Char> value) -> iterator
   {
-      return StringProcess<char_type>::template HandleString<iterator>(value, 
-          [&](const basic_string_view<char_type> str) 
+      return StringProcess<Char>::template HandleString<iterator>(value, 
+          [&](const basic_string_view<Char> str) 
           {
-              return base::operator()(str);
+              return detail::write(out, str, specs, locale);
           });
   }
 };

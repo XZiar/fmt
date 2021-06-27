@@ -475,7 +475,6 @@ inline size_t strftime(wchar_t* str, size_t count, const wchar_t* format,
 // ++UTF++
 inline size_t strftime(char16_t* str, size_t count, const char16_t* format, const std::tm* time);
 inline size_t strftime(char32_t* str, size_t count, const char32_t* format, const std::tm* time);
-}  // namespace detail
 
 FMT_END_DETAIL_NAMESPACE
 
