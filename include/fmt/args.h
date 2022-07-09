@@ -96,6 +96,11 @@ class dynamic_format_arg_store
 
   // ++UTF++
   // template <typename T>
+  // using stored_type = conditional_t<
+  //     std::is_convertible<T, std::basic_string<char_type>>::value &&
+  //         !detail::is_reference_wrapper<T>::value,
+  //     std::basic_string<char_type>, T>;
+  // template <typename T>
   // using stored_type = conditional_t<detail::is_string<T>::value &&
   //                                       !has_formatter<T, Context>::value &&
   //                                       !detail::is_reference_wrapper<T>::value,
@@ -104,7 +109,6 @@ class dynamic_format_arg_store
       using type = T;
   };
   template <typename T> struct stored_type_impl<T, enable_if_t<detail::is_string<T>::value &&
-                                      !has_formatter<T, Context>::value &&
                                       !detail::is_reference_wrapper<T>::value>> {
       using result = decltype(detail::to_string_view(std::declval<T>()));
       using type = std::basic_string<typename result::value_type>;
